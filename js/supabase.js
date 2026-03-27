@@ -5,8 +5,8 @@
    Setup: Supabase Dashboard → Settings → API
 ════════════════════════════════════════════════════════════ */
 
-const SUPABASE_URL      = 'https://kuxbunmcxemfylbywzdj.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1eGJ1bm1jeGVtZnlsYnl3emRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMDIyMTEsImV4cCI6MjA4OTU3ODIxMX0.2lWKI4XLE0mt7cs1ZkGhflKftF8go-ZwkZkvzWuZuQ4';
+const SUPABASE_URL      = 'url?';
+const SUPABASE_ANON_KEY = 'key?';
 
 const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
