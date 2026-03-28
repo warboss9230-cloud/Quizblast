@@ -1498,7 +1498,20 @@ const LevelMode = (() => {
 
   function buildStageQ(stg){
     const sel=SelectScreen.get();
-    const bank=(BANK[sel.cls]&&BANK[sel.cls][sel.subject])||[];
+    let bank=[];
+
+    if(sel.subject==='mix'){
+      // Mix: sabhi subjects se questions lao
+      const allSubjects=['math','english','hindi','science','computer','evs','gk','economics','space','animals'];
+      allSubjects.forEach(s=>{
+        const b=(BANK[sel.cls]&&BANK[sel.cls][s])||[];
+        if(b.length) bank.push(...b);
+      });
+    } else {
+      bank=(BANK[sel.cls]&&BANK[sel.cls][sel.subject])||[];
+    }
+
+    if(!bank.length) return [];
     const offset=Math.floor(((stg-1)/TOTAL_STAGES)*Math.max(0,bank.length-QS_PER_STAGE));
     return shuffle(bank).slice(offset,offset+QS_PER_STAGE*2).slice(0,QS_PER_STAGE).map(r=>{
       const c=r.opts[r.ans],sh=shuffle(r.opts);return{q:r.q,opts:sh,ans:sh.indexOf(c),hint:r.hint};
