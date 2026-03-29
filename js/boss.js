@@ -338,6 +338,53 @@ const BossMode = (() => {
       btn.classList.add('wrong'); Sound.play('boss');
       playerHP--; Player.addCoins(-5);
       $('bossStatus').textContent = '💥 Wrong! −1 HP';
+
+      // ── Monster Attack Animation ──
+      const mon   = $('bossMonster');
+      const arena = document.querySelector('.boss-arena');
+      const wrap  = $('bossMonsterWrap');
+
+      // 1. Monster lunges forward
+      if (mon) {
+        mon.classList.remove('attack');
+        void mon.offsetWidth;
+        mon.classList.add('attack');
+        setTimeout(() => mon.classList.remove('attack'), 650);
+      }
+
+      // 2. Roar glow burst on monster wrap
+      if (wrap) {
+        wrap.classList.add('roar');
+        setTimeout(() => wrap.classList.remove('roar'), 550);
+      }
+
+      // 3. Red screen flash + arena shake
+      if (arena) {
+        arena.classList.remove('player-hit');
+        void arena.offsetWidth;
+        arena.classList.add('player-hit');
+        setTimeout(() => arena.classList.remove('player-hit'), 500);
+      }
+
+      // 4. Claw slash overlay
+      let slash = document.getElementById('bossClawSlash');
+      if (!slash) {
+        slash = document.createElement('div');
+        slash.id = 'bossClawSlash';
+        slash.className = 'boss-claw-slash';
+        document.body.appendChild(slash);
+      }
+      slash.classList.remove('slash');
+      void slash.offsetWidth;
+      slash.classList.add('slash');
+      setTimeout(() => slash.classList.remove('slash'), 450);
+
+      // 5. HP bar shake
+      const hpBar = document.querySelector('.player-hp-bar');
+      if (hpBar) {
+        hpBar.classList.add('hit');
+        setTimeout(() => hpBar.classList.remove('hit'), 450);
+      }
     }
     updateBossUI(); Player.updateHUD();
     if (bossHP <= 0) { setTimeout(() => victory(), 600); return; }
