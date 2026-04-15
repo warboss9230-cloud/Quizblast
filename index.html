@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, viewport-fit=cover"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="theme-color" content="#0a0b12"/>
+  <title>QuizBlast ⚡</title>
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="icon" type="image/x-icon" href="icons/favicon.ico"/>
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png"/>
+  <meta name="apple-mobile-web-app-title" content="QuizBlast"/>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body data-theme="cyber">
+
+<!-- ██████████  HOME  ██████████ -->
+<div id="screen-home" class="screen active">
+  <div class="grid-bg"></div>
+  <header class="top-bar">
+    <div class="logo" id="logo-tap" onclick="AdminLock.tap()">QUIZ<span>BLAST</span>⚡</div>
+    <div class="top-icons">
+      <button class="icon-btn" onclick="App.nav('leaderboard')" title="Leaderboard">🏆</button>
+      <button class="icon-btn" onclick="App.nav('shop')"        title="Shop">🛒</button>
+      <button class="icon-btn" onclick="App.nav('settings')"    title="Settings">⚙️</button>
+    </div>
+  </header>
+
+  <section class="hero tappable-hero" onclick="App.nav('profile')" title="View Profile">
+    <div class="hero-avatar" id="home-avatar">🤖</div>
+    <h1 class="hero-name" id="home-username">Player</h1>
+    <div class="hero-tap-hint">👆 tap to view profile</div>
+    <div class="hero-stats">
+      <div class="stat-pill">⚡<span id="home-xp">0</span> XP</div>
+      <div class="stat-pill">🪙<span id="home-coins">0</span></div>
+      <div class="stat-pill">🔥<span id="home-streak">0</span></div>
+    </div>
+    <div class="level-bar-wrap">
+      <div class="level-label">LVL <span id="home-level">1</span></div>
+      <div class="level-track"><div class="level-fill" id="home-level-fill"></div></div>
+      <div class="level-next" id="home-level-next"></div>
+    </div>
+  </section>
+
+  <!-- Daily Quests strip -->
+  <div class="quest-strip" id="quest-strip" onclick="App.nav('quests')">
+    <span>📋</span>
+    <div class="quest-strip-text">
+      <b>Daily Quests</b>
+      <span id="quest-strip-sub">0/3 complete</span>
+    </div>
+    <div class="quest-mini-bar"><div id="quest-mini-fill"></div></div>
+    <span>›</span>
+  </div>
+
+  <!-- Mode pills -->
+  <div class="mode-row">
+    <button class="mode-pill active" id="mode-classic"  onclick="UI.setMode('classic',this)">Classic</button>
+    <button class="mode-pill"        id="mode-sudden"   onclick="UI.setMode('sudden',this)">☠️ Sudden</button>
+    <button class="mode-pill"        id="mode-challenge" onclick="UI.setMode('challenge',this)">⚔️ Challenge</button>
+    <button class="mode-pill"        id="mode-boss"      onclick="Boss.start(() => {})">👹 Boss Battle</button>
+    <button class="mode-pill"        id="mode-review"   onclick="UI.setMode('review',this)">🔁 Review</button>
+  </div>
+
+  <!-- Difficulty selector -->
+  <div class="diff-row" id="diff-row">
+    <button class="diff-btn active" data-diff="easy"   onclick="UI.setDiff('easy',this)">🟢 Easy</button>
+    <button class="diff-btn"        data-diff="medium" onclick="UI.setDiff('medium',this)">🟡 Medium</button>
+    <button class="diff-btn"        data-diff="hard"   onclick="UI.setDiff('hard',this)">🔴 Hard</button>
+  </div>
+
+  <!-- Category grid -->
+  <section class="categories">
+    <h2 class="section-title">Choose Category</h2>
+    <div class="cat-grid" id="cat-grid"></div>
+  </section>
+
+  <!-- Daily challenge -->
+  <div class="daily-banner" onclick="App.startQuiz('daily')">
+    <span class="daily-icon">🌟</span>
+    <div><div class="daily-title">Daily Challenge</div><div class="daily-sub">Bonus ×2 XP!</div></div>
+    <span class="daily-arrow">→</span>
+  </div>
+
+  <!-- Bookmarks strip -->
+  <div class="daily-banner" onclick="App.nav('bookmarks')" style="margin-top:8px; background: linear-gradient(135deg,rgba(99,102,241,.15),rgba(99,102,241,.05));">
+    <span class="daily-icon">🔖</span>
+    <div><div class="daily-title">Bookmarks</div><div class="daily-sub" id="home-bookmark-count">0 saved questions</div></div>
+    <span class="daily-arrow">→</span>
+  </div>
+
+  <!-- Visitor counter -->
+  <div class="visitor-strip">
+    <span class="visitor-icon">👁️</span>
+    <span class="visitor-text">Total Visitors: <span id="visitor-count">...</span></span>
+  </div>
+</div>
+
+
+<!-- ██████████  QUIZ  ██████████ -->
+<div id="screen-quiz" class="screen">
+  <header class="quiz-header">
+    <button class="back-btn" onclick="App.confirmExit()">✕</button>
+    <div class="quiz-meta">
+      <span id="q-category" class="q-category-badge">Science</span>
+      <span id="q-daily-badge" class="daily-quiz-badge" style="display:none">🌟 DAILY</span>
+      <span id="q-counter" class="q-counter-text">Q 1/10</span>
+    </div>
+    <div class="q-lives" id="q-lives">❤️❤️❤️</div>
+  </header>
+  <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+
+  <!-- Power-ups bar -->
+  <div class="powerup-bar" id="powerup-bar">
+    <button class="pu-btn" id="pu-5050"   onclick="PowerUp.use('fifty')"  title="50/50">⚡50/50<span class="pu-cost">20🪙</span></button>
+    <button class="pu-btn" id="pu-time"   onclick="PowerUp.use('time')"   title="+5s">⏳+5s<span class="pu-cost">15🪙</span></button>
+    <button class="pu-btn" id="pu-skip"   onclick="PowerUp.use('skip')"   title="Skip">⏭Skip<span class="pu-cost">10🪙</span></button>
+    <button class="pu-btn" id="pu-shield" onclick="PowerUp.use('shield')" title="Shield">🛡Shield<span class="pu-cost">25🪙</span></button>
+  </div>
+
+  <!-- Sudden death banner -->
+  <div class="sudden-banner" id="sudden-banner" style="display:none">
+    ☠️ SUDDEN DEATH — One wrong = GAME OVER
+  </div>
+
+  <div class="timer-wrap">
+    <svg class="timer-svg" viewBox="0 0 100 100">
+      <circle class="timer-bg"   cx="50" cy="50" r="44"/>
+      <circle class="timer-ring" id="timer-ring" cx="50" cy="50" r="44" stroke-dasharray="276.46" stroke-dashoffset="0"/>
+    </svg>
+    <div class="timer-num" id="timer-num">15</div>
+  </div>
+
+  <div class="q-card" id="q-card">
+    <div class="q-diff-badge" id="q-diff-badge">🟢 Easy</div>
+    <div class="q-number" id="q-number">01</div>
+    <button class="bookmark-btn" id="bookmark-btn" onclick="Bookmark.toggle()" title="Bookmark">🔖</button>
+    <p class="q-text" id="q-text">Loading...</p>
+    <button class="hint-btn" id="hint-btn" onclick="Quiz.useHint()">💡 Hint <span class="hint-cost">-5🪙</span></button>
+  </div>
+
+  <div class="options-grid" id="options-grid"></div>
+  <div class="combo-bar" id="combo-bar">
+    <span>🔥 Combo ×<span id="combo-count">1</span></span>
+    <div class="combo-dots" id="combo-dots"></div>
+  </div>
+  <div class="hint-toast" id="hint-toast"></div>
+</div>
+
+
+<!-- ██████████  BOSS  ██████████ -->
+<div id="screen-boss" class="screen">
+  <div class="boss-bg"></div>
+  <div class="boss-arena">
+    <div class="boss-title">⚔️ BOSS BATTLE ⚔️</div>
+    <div class="boss-fight">
+      <div class="boss-side">
+        <div class="boss-sprite" id="boss-sprite">👾</div>
+        <div class="boss-name-lbl" id="boss-name">MEGA BRAIN</div>
+        <div class="boss-hp-wrap"><div class="boss-hp-fill" id="boss-hp-fill"></div></div>
+        <div class="boss-hp-num" id="boss-hp-num">100 HP</div>
+      </div>
+      <div class="vs-text">VS</div>
+      <div class="player-side">
+        <div class="player-sprite" id="player-sprite-boss">🧑‍🚀</div>
+        <div class="boss-name-lbl" id="player-name-boss">YOU</div>
+        <div class="boss-hp-wrap"><div class="boss-hp-fill player-hp-fill" id="player-hp-fill"></div></div>
+        <div class="boss-hp-num" id="player-hp-num">100 HP</div>
+      </div>
+    </div>
+    <div class="boss-q-text" id="boss-q-text"></div>
+    <div class="options-grid boss-options" id="boss-options-grid"></div>
+    <div class="boss-status" id="boss-status"></div>
+  </div>
+</div>
+
+
+<!-- ██████████  RESULT  ██████████ -->
+<div id="screen-result" class="screen">
+  <div class="result-bg"></div>
+  <div class="result-wrap">
+    <div class="result-trophy" id="result-trophy">🏆</div>
+    <h2 class="result-title" id="result-title">QUIZ COMPLETE!</h2>
+    <div class="score-ring-wrap">
+      <svg viewBox="0 0 120 120" class="score-ring-svg">
+        <defs>
+          <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"   stop-color="var(--c-neon)"/>
+            <stop offset="100%" stop-color="var(--c-blue)"/>
+          </linearGradient>
+        </defs>
+        <circle cx="60" cy="60" r="52" class="score-ring-bg"/>
+        <circle cx="60" cy="60" r="52" class="score-ring-arc" id="score-ring-arc"
+                stroke-dasharray="326.72" stroke-dashoffset="326.72"/>
+      </svg>
+      <div class="score-center">
+        <div class="score-big" id="score-big">0</div>
+        <div class="score-sub">/ <span id="score-total">10</span></div>
+      </div>
+    </div>
+    <div class="rewards-row">
+      <div class="reward-card"><div class="reward-icon">⚡</div><div class="reward-val" id="xp-earned">+0</div><div class="reward-label">XP</div></div>
+      <div class="reward-card"><div class="reward-icon">🪙</div><div class="reward-val" id="coins-earned">+0</div><div class="reward-label">Coins</div></div>
+      <div class="reward-card"><div class="reward-icon">⏱️</div><div class="reward-val" id="time-bonus">+0</div><div class="reward-label">Bonus</div></div>
+    </div>
+    <div class="levelup-banner" id="levelup-banner">🎉 LEVEL UP! LVL <span id="new-level">2</span>!</div>
+    <!-- New achievements -->
+    <div id="new-achievements" class="new-achievements"></div>
+    <div class="result-breakdown" id="result-breakdown"></div>
+    <div class="result-actions">
+      <button class="btn-primary"    onclick="App.nav('home')">🏠 Home</button>
+      <button class="btn-secondary"  onclick="Quiz.retry()">🔄 Retry</button>
+      <button class="btn-secondary"  onclick="App.nav('stats')">📊 Stats</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ██████████  LEADERBOARD  ██████████ -->
+<div id="screen-leaderboard" class="screen">
+  <header class="inner-header">
+    <button class="back-btn" onclick="App.nav('home')">←</button>
+    <h2>🏆 Leaderboard</h2>
+    <div class="top-icons">
+      <button class="icon-btn" onclick="App.nav('shop')"     title="Shop">🛒</button>
+      <button class="icon-btn" onclick="App.nav('settings')" title="Settings">⚙️</button>
+    </div>
+  </header>
+  <div class="lb-tabs">
+    <button class="lb-tab active" onclick="LB.show('global',this)">Global</button>
+    <button class="lb-tab"        onclick="LB.show('weekly',this)">Weekly</button>
+    <button class="lb-tab"        onclick="LB.show('friends',this)">Friends</button>
+  </div>
+  <!-- Friends panel (shown only on friends tab) -->
+  <div id="lb-friends-panel" style="display:none">
+    <div class="friends-code-box">
+      <div class="friends-code-label">Your Friend Code</div>
+      <div class="friends-code-val" id="my-friend-code">----</div>
+      <button class="btn-secondary" style="width:100%;margin-top:8px" onclick="LB.copyCode()">📋 Copy Code</button>
+    </div>
+    <div class="friends-add-box">
+      <input id="friend-code-input" class="form-input" placeholder="Enter friend's code..." maxlength="8" style="text-transform:uppercase"/>
+      <button class="btn-primary" style="width:100%;margin-top:8px" onclick="LB.addFriend()">➕ Add Friend</button>
+    </div>
+  </div>
+  <div class="lb-podium" id="lb-podium"></div>
+  <div class="lb-list"   id="lb-list"></div>
+</div>
+
+
+<!-- ██████████  PROFILE  ██████████ -->
+<div id="screen-profile" class="screen">
+  <header class="inner-header">
+    <button class="back-btn" onclick="App.nav('home')">←</button>
+    <h2>👤 Profile</h2>
+    <button class="icon-btn" onclick="Profile.editName()">✏️</button>
+  </header>
+  <div class="profile-card">
+    <div class="avatar-picker" id="avatar-picker"></div>
+    <div class="profile-name"  id="profile-name">Player</div>
+    <div class="profile-title" id="profile-title">Novice</div>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="sc-icon">⚡</div><div class="sc-val" id="p-xp">0</div><div class="sc-label">XP</div></div>
+    <div class="stat-card"><div class="sc-icon">🪙</div><div class="sc-val" id="p-coins">0</div><div class="sc-label">Coins</div></div>
+    <div class="stat-card"><div class="sc-icon">🏅</div><div class="sc-val" id="p-level">1</div><div class="sc-label">Level</div></div>
+    <div class="stat-card"><div class="sc-icon">🔥</div><div class="sc-val" id="p-streak">0</div><div class="sc-label">Streak</div></div>
+    <div class="stat-card"><div class="sc-icon">✅</div><div class="sc-val" id="p-correct">0</div><div class="sc-label">Correct</div></div>
+    <div class="stat-card"><div class="sc-icon">📝</div><div class="sc-val" id="p-played">0</div><div class="sc-label">Played</div></div>
+  </div>
+  <div class="badges-section">
+    <h3>Badges & Achievements</h3>
+    <div class="badges-row" id="badges-row"></div>
+  </div>
+  <div class="profile-actions">
+    <button class="btn-danger" onclick="Profile.reset()">🗑 Reset Progress</button>
+  </div>
+</div>
+
+
+<!-- ██████████  SHOP  ██████████ -->
+<div id="screen-shop" class="screen">
+  <header class="inner-header">
+    <button class="back-btn" onclick="App.nav('home')">←</button>
+    <h2>🛒 Shop</h2>
+    <div class="shop-coins-badge">🪙 <span id="shop-coins">0</span></div>
+  </header>
+  <div class="shop-tabs">
+    <button class="shop-tab active" onclick="Shop.tab('powerups',this)">⚡ Power-ups</button>
+    <button class="shop-tab"        onclick="Shop.tab('avatars',this)">👾 Avatars</button>
+    <button class="shop-tab"        onclick="Shop.tab('themes',this)">🎨 Themes</button>
+  </div>
+  <div id="shop-content" class="shop-content"></div>
+</div>
+
+
+<!-- ██████████  STATS  ██████████ -->
+<div id="screen-stats" class="screen">
+  <header class="inner-header">
+    <button class="back-btn" onclick="App.nav('home')">←</button>
+    <h2>📊 Stats</h2><div></div>
+  </header>
+  <div class="stats-page">
+    <div class="stats-overview">
+      <div class="stat-big-card"><div class="sbc-val" id="st-accuracy">0%</div><div class="sbc-label">Accuracy</div></div>
+      <div class="stat-big-card"><div class="sbc-val" id="st-best-streak">0</div><div class="sbc-label">Best Streak</div></div>
+    </div>
+    <h3 class="section-title">Category Performance</h3>
+    <div id="cat-stats-bars"></div>
+    <h3 class="section-title" style="margin-top:16px">Recent Quiz History</h3>
+    <div id="quiz-history-list"></div>
+    <h3 class="section-title" style="margin-top:16px">XP Progress (last 7 days)</h3>
+    <div class="xp-chart-wrap"><canvas id="xp-chart" width="340" height="160"></canvas></div>
+  </div>
+</div>
+
+
+<!-- ██████████  DAILY QUESTS  ██████████ -->
+<div id="screen-quests" class="screen">
+  <header class="inner-header">
+    <button class="back-btn" onclick="App.nav('home')">←</button>
+    <h2>📋 Daily Quests</h2><div></div>
+  </header>
+  <div class="quests-wrap" id="quests-wrap"></div>
+</div>
+
+
+<!-- ██████████  PvP CHALLENGE  ██████████ -->
+<div id="screen-challenge" class="screen">
+  <header class="inner-header">
+    <button class="back-btn" onclick="App.nav('home')">←</button>
+    <h2>⚔️ PvP Battle</h2>
+    <div class="pvp-coins-badge">🪙 <span id="pvp-coin-display">0</span></div>
+  </header>
+  <div class="challenge-wrap">
+
+    <!-- BATTLE SETTINGS -->
+    <div class="challenge-section">
+      <h3>⚙️ Battle Settings</h3>
+
+      <!-- Bet Amount -->
+      <div class="pvp-setting-row">
+        <span class="pvp-setting-label">💰 Bet Amount</span>
+        <div class="pvp-bet-btns">
+          <button class="pvp-bet-btn" onclick="PvP.setBet(10)">10</button>
+          <button class="pvp-bet-btn" onclick="PvP.setBet(25)">25</button>
+          <button class="pvp-bet-btn active" onclick="PvP.setBet(50)">50</button>
+          <button class="pvp-bet-btn" onclick="PvP.setBet(100)">100</button>
+          <button class="pvp-bet-btn" onclick="PvP.setBet(200)">200</button>
+          <button class="pvp-bet-btn" onclick="PvP.setBet(500)">500</button>
+          <button class="pvp-bet-btn" onclick="PvP.setBet(1000)">1K</button>
+        </div>
+      </div>
+
+      <!-- Category -->
+      <div class="pvp-setting-row">
+        <span class="pvp-setting-label">📚 Category</span>
+        <select id="ch-category" class="form-input"></select>
+      </div>
+
+      <!-- Difficulty -->
+      <div class="pvp-setting-row">
+        <span class="pvp-setting-label">⚡ Difficulty</span>
+        <select id="ch-diff" class="form-input">
+          <option value="easy">🟢 Easy</option>
+          <option value="medium" selected>🟡 Medium</option>
+          <option value="hard">🔴 Hard</option>
+        </select>
+      </div>
+
+      <!-- Number of Questions -->
+      <div class="pvp-setting-row">
+        <span class="pvp-setting-label">❓ Questions</span>
+        <select id="ch-qcount" class="form-input">
+          <option value="5">5 Questions</option>
+          <option value="10" selected>10 Questions</option>
+          <option value="15">15 Questions</option>
+          <option value="20">20 Questions</option>
+        </select>
+      </div>
+
+      <!-- Time per Question -->
+      <div class="pvp-setting-row">
+        <span class="pvp-setting-label">⏱️ Time / Q</span>
+        <select id="ch-timer" class="form-input">
+          <option value="10">10 sec (Blitz)</option>
+          <option value="15" selected>15 sec (Normal)</option>
+          <option value="20">20 sec (Relaxed)</option>
+          <option value="30">30 sec (Chill)</option>
+        </select>
+      </div>
+
+      <!-- Game Mode -->
+      <div class="pvp-setting-row">
+        <span class="pvp-setting-label">🎮 Mode</span>
+        <select id="ch-mode" class="form-input">
+          <option value="classic" selected>⚔️ Classic (Score)</option>
+          <option value="sudden">💀 Sudden Death</option>
+          <option value="streak">🔥 Streak Battle</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- ONLINE PLAYERS -->
+    <div class="challenge-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <h3 style="margin:0">🟢 Players</h3>
+        <button class="btn-secondary" style="padding:4px 12px;font-size:0.8rem" onclick="PvP.loadOnlinePlayers()">🔄 Refresh</button>
+      </div>
+      <p class="text-muted" style="margin-bottom:10px">Tap ⚔️ to challenge — winner takes the bet!</p>
+      <div id="pvp-online-list" class="pvp-online-list">
+        <p class="text-muted" style="text-align:center;padding:16px">Loading players...</p>
+      </div>
+    </div>
+
+    <!-- ACTIVE CHALLENGE NOTIFICATION -->
+    <div id="pvp-incoming" class="pvp-incoming-box" style="display:none">
+      <div class="pvp-incoming-title">⚔️ Challenge Received!</div>
+      <div class="pvp-incoming-from" id="pvp-incoming-from">Someone challenged you</div>
+      <div class="pvp-incoming-bet"  id="pvp-incoming-bet">Bet: 0 🪙</div>
+      <div class="modal-actions" style="padding:0;margin-top:12px">
+        <button class="btn-primary"   onclick="PvP.acceptChallenge()">✅ Accept</button>
+        <button class="btn-secondary" onclick="PvP.declineChallenge()">✕ Decline</button>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="challenge-section">
+      <h3>📜 Battle History</h3>
+      <div id="pvp-history"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ██████████  PvP WAITING ROOM  ██████████ -->
+<div id="screen-pvp-wait" class="screen">
+  <div class="pvp-wait-wrap">
+    <div class="pvp-wait-title">⚔️ Battle Room</div>
+    <div class="pvp-room-code-big" id="pvp-wait-code">----</div>
+    <p class="text-muted" style="text-align:center;margin:4px 0 20px">Share this code with your opponent</p>
+    <button class="btn-secondary" style="margin-bottom:20px" onclick="PvP.copyWaitCode()">📋 Copy Code</button>
+
+    <div class="pvp-vs-box">
+      <div class="pvp-player-card">
+        <div class="pvp-player-avatar" id="pvp-host-avatar">🤖</div>
+        <div class="pvp-player-name"  id="pvp-host-name">You</div>
+        <div class="pvp-player-badge">HOST</div>
+      </div>
+      <div class="pvp-vs-text">VS</div>
+      <div class="pvp-player-card pvp-guest-card">
+        <div class="pvp-player-avatar" id="pvp-guest-avatar">❓</div>
+        <div class="pvp-player-name"  id="pvp-guest-name">Waiting...</div>
+        <div class="pvp-player-badge pvp-badge-guest">GUEST</div>
+      </div>
+    </div>
+
+    <div class="pvp-bet-display">🪙 Bet: <span id="pvp-wait-bet">0</span> coins each</div>
+    <div class="pvp-wait-status" id="pvp-wait-status">⏳ Waiting for opponent...</div>
+
+    <div id="pvp-start-btn-wrap" style="display:none;margin-top:16px">
+      <button class="btn-primary" style="width:100%" onclick="PvP.startBattle()">⚡ Start Battle!</button>
+    </div>
+    <button class="btn-danger" style="width:100%;margin-top:12px" onclick="PvP.cancelRoom()">✕ Cancel</button>
+  </div>
+</div>
+
+<!-- ██████████  PvP RESULT  ██████████ -->
+<div id="screen-pvp-result" class="screen">
+  <div class="pvp-result-wrap">
+    <div class="pvp-result-trophy" id="pvp-result-trophy">🏆</div>
+    <div class="pvp-result-title"  id="pvp-result-title">YOU WIN!</div>
+    <div class="pvp-score-row">
+      <div class="pvp-score-card">
+        <div class="pvp-score-name" id="pvr-host-name">You</div>
+        <div class="pvp-score-val"  id="pvr-host-score">0</div>
+        <div class="pvp-score-lbl">correct</div>
+      </div>
+      <div class="pvp-vs-text">VS</div>
+      <div class="pvp-score-card">
+        <div class="pvp-score-name" id="pvr-guest-name">Opponent</div>
+        <div class="pvp-score-val"  id="pvr-guest-score">0</div>
+        <div class="pvp-score-lbl">correct</div>
+      </div>
+    </div>
+    <div class="pvp-coins-result" id="pvp-coins-result"></div>
+    <div class="modal-actions" style="padding:0 16px 24px;flex-direction:column;gap:10px">
+      <button class="btn-primary"   style="width:100%" onclick="App.nav('home')">🏠 Home</button>
+      <button class="btn-secondary" style="width:100%" onclick="App.nav('challenge')">⚔️ Play Again</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ██████████  REVIEW MODE  ██████████ -->
+<div id="screen-review" class="screen">
+  <header class="inner-header">
+    <button class="back-btn" onclick="App.nav('home')">←</button>
+    <h2>🔁 Review Mode</h2><div></div>
+  </header>
+  <div class="review-wrap">
+    <p class="text-muted" style="padding:0 16px 12px">Practice questions you answered wrong.</p>
+    <div id="review-list"></div>
+    <div style="padding:16px">
+      <button class="btn-primary" style="width:100%" onclick="ReviewMode.start()" id="review-start-btn">▶️ Start Review Quiz</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ██████████  SETTINGS  ██████████ -->
+<div id="screen-settings" class="screen">
+  <header class="inner-header">
+    <button class="back-btn" onclick="App.nav('home')">←</button>
+    <h2>⚙️ Settings</h2><div></div>
+  </header>
+  <div class="settings-wrap" id="settings-wrap"></div>
+</div>
+
+
+<!-- ██████████  ADMIN  ██████████ -->
+<div id="screen-admin" class="screen">
+  <header class="inner-header">
+    <button class="back-btn" onclick="AdminLock.logout()">←</button>
+    <h2>⚙️ Admin Panel</h2>
+    <button class="icon-btn" onclick="AdminLock.logout()" title="End Session">🔒</button>
+  </header>
+  <div class="admin-wrap">
+    <div class="admin-tabs" style="flex-wrap:wrap;gap:4px">
+      <button class="admin-tab active" onclick="Admin.tab('add',this)">➕ Add Q</button>
+      <button class="admin-tab"        onclick="Admin.tab('visitors',this)">👁️ Visitors</button>
+      <button class="admin-tab"        onclick="Admin.tab('gifts',this)">🎁 Gifts</button>
+      <button class="admin-tab"        onclick="Admin.tab('ban',this)">🚫 Ban</button>
+      <button class="admin-tab"        onclick="Admin.tab('broadcast',this)">📢 Broadcast</button>
+      <button class="admin-tab"        onclick="Admin.tab('maintenance',this)">🔧 Maintenance</button>
+      <button class="admin-tab"        onclick="Admin.tab('graph',this)">📊 Graph</button>
+      <button class="admin-tab"        onclick="Admin.tab('cheaters',this)">🚨 Cheaters</button>
+      <button class="admin-tab"        onclick="Admin.tab('csv',this)">📥 CSV Import</button>
+    </div>
+
+    <!-- ADD QUESTION -->
+    <div id="admin-add" class="admin-panel">
+      <div class="form-group"><label>Category</label><select id="af-category" class="form-input"></select></div>
+      <div class="form-group"><label>Difficulty</label>
+        <select id="af-diff" class="form-input">
+          <option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Question</label><textarea id="af-question" class="form-input" rows="3" placeholder="Enter question..."></textarea></div>
+      <div class="form-group"><label>Option A</label><input id="af-opt0" class="form-input" placeholder="Option A"/></div>
+      <div class="form-group"><label>Option B</label><input id="af-opt1" class="form-input" placeholder="Option B"/></div>
+      <div class="form-group"><label>Option C</label><input id="af-opt2" class="form-input" placeholder="Option C"/></div>
+      <div class="form-group"><label>Option D</label><input id="af-opt3" class="form-input" placeholder="Option D"/></div>
+      <div class="form-group"><label>Correct Answer</label>
+        <select id="af-ans" class="form-input">
+          <option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Hint</label><input id="af-hint" class="form-input" placeholder="Optional hint..."/></div>
+      <button class="btn-primary" style="width:100%" onclick="Admin.addQuestion()">➕ Add Question</button>
+    </div>
+
+
+
+    <!-- VISITORS -->
+    <div id="admin-visitors" class="admin-panel" style="display:none">
+
+      <!-- Stat cards row -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <div class="admin-stat-card" style="flex:1 1 80px">
+          <div class="asc-icon">👁️</div>
+          <div class="asc-val" id="admin-visitor-count">...</div>
+          <div class="asc-label">Visitors</div>
+        </div>
+        <div class="admin-stat-card" style="flex:1 1 80px">
+          <div class="asc-icon">👥</div>
+          <div class="asc-val" id="admin-player-count">...</div>
+          <div class="asc-label">Players</div>
+        </div>
+        <div class="admin-stat-card" style="flex:1 1 80px">
+          <div class="asc-icon">🏆</div>
+          <div class="asc-val" id="admin-lb-count">...</div>
+          <div class="asc-label">Leaderboard</div>
+        </div>
+      </div>
+
+      <!-- Filter + refresh -->
+      <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
+        <select id="visitor-filter" class="form-input" style="flex:1" onchange="Admin.filterVisitors()">
+          <option value="all">👥 All Players</option>
+          <option value="gmail">📧 Gmail Only</option>
+          <option value="guest">👤 Guest Only</option>
+        </select>
+        <button class="btn-secondary" style="white-space:nowrap" onclick="Admin.loadStats()">🔄 Refresh</button>
+      </div>
+
+      <!-- Player list -->
+      <div id="admin-online-list"><p class="text-muted" style="text-align:center;padding:16px">Loading players…</p></div>
+    </div>
+
+    <!-- GIFTS -->
+    <div id="admin-gifts" class="admin-panel" style="display:none">
+      <h3 style="margin-bottom:12px">🎁 Send Coin Gift</h3>
+      <div class="form-group"><label>Player Username</label>
+        <input id="gift-username" class="form-input" placeholder="Exact username..."/>
+      </div>
+      <div class="form-group"><label>Coins Amount</label>
+        <input id="gift-amount" class="form-input" type="number" placeholder="e.g. 100" min="1"/>
+      </div>
+      <div class="form-group"><label>Message (optional)</label>
+        <input id="gift-message" class="form-input" placeholder="e.g. Great job!"/>
+      </div>
+      <button class="btn-primary" style="width:100%" onclick="Admin.sendGift()">🎁 Send Gift</button>
+      <h3 style="margin:16px 0 8px">📜 Recent Gifts</h3>
+      <div id="admin-gift-history"></div>
+    </div>
+
+    <!-- BAN SYSTEM -->
+    <div id="admin-ban" class="admin-panel" style="display:none">
+      <h3 style="margin-bottom:12px">🚫 Ban Players</h3>
+      <p style="color:#94a3b8;font-size:13px;margin-bottom:12px">
+        Banned players cannot log in or play. Go to Visitors tab, find a player and use the Ban button there.
+      </p>
+      <h3 style="margin:16px 0 8px">📋 Banned Players</h3>
+      <div id="admin-banned-list"><p class="text-muted" style="text-align:center;padding:16px">Loading...</p></div>
+      <button class="btn-secondary" style="width:100%;margin-top:12px" onclick="Admin.loadBannedPlayers()">🔄 Refresh List</button>
+    </div>
+
+    <!-- BROADCAST -->
+    <div id="admin-broadcast" class="admin-panel" style="display:none">
+      <h3 style="margin-bottom:12px">📢 Send Broadcast</h3>
+      <div class="form-group">
+        <label>Emoji</label>
+        <select id="broadcast-emoji" class="form-input">
+          <option value="📢">📢 Announcement</option>
+          <option value="🎉">🎉 Celebration</option>
+          <option value="⚠️">⚠️ Warning</option>
+          <option value="🏆">🏆 Achievement</option>
+          <option value="🎁">🎁 Gift</option>
+          <option value="🔧">🔧 Maintenance</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Title</label>
+        <input id="broadcast-title" class="form-input" placeholder="e.g. New Update!"/>
+      </div>
+      <div class="form-group">
+        <label>Message</label>
+        <textarea id="broadcast-message" class="form-input" rows="3" placeholder="Your message to all players..."></textarea>
+      </div>
+      <button class="btn-primary" style="width:100%" onclick="Admin.sendBroadcast()">📢 Send to All Players</button>
+      <h3 style="margin:16px 0 8px">📜 Recent Broadcasts</h3>
+      <div id="broadcast-history"></div>
+    </div>
+
+    <!-- MAINTENANCE MODE -->
+    <div id="admin-maintenance" class="admin-panel" style="display:none">
+      <h3 style="margin-bottom:12px">🔧 Maintenance Mode</h3>
+      <div style="background:#1e293b;border-radius:12px;padding:16px;margin-bottom:16px;text-align:center">
+        <div id="maintenance-status" style="font-size:15px;font-weight:700;margin-bottom:12px">Checking...</div>
+        <button id="maintenance-toggle-btn" class="btn-primary" style="width:100%;background:#ef4444"
+          onclick="Admin.toggleMaintenance()">
+          🔧 Turn ON Maintenance
+        </button>
+      </div>
+      <div style="background:#0f172a;border-radius:8px;padding:12px;font-size:12px;color:#64748b">
+        <p>⚠️ When maintenance is ON:</p>
+        <p>• Users will see a maintenance screen</p>
+        <p>• Only admin can access the app</p>
+        <p>• Turn OFF when update is complete</p>
+      </div>
+    </div>
+
+
+    <!-- VISITOR GRAPH -->
+    <div id="admin-graph" class="admin-panel" style="display:none">
+      <h3 style="margin-bottom:12px">📊 Daily Visitors (Last 7 Days)</h3>
+      <div style="background:#1e293b;border-radius:12px;padding:12px">
+        <canvas id="admin-visitor-graph" style="width:100%;display:block"></canvas>
+      </div>
+      <button class="btn-secondary" style="width:100%;margin-top:12px" onclick="Admin.loadVisitorGraph()">🔄 Refresh Graph</button>
+      <div style="background:#0f172a;border-radius:8px;padding:12px;margin-top:12px;font-size:12px;color:#64748b">
+        <p>ℹ️ Run setup SQL to enable daily visitor tracking.</p>
+        <p style="margin-top:4px">Each day's unique visitors will be logged automatically.</p>
+      </div>
+    </div>
+
+    <!-- CHEATER DETECTION -->
+    <div id="admin-cheaters" class="admin-panel" style="display:none">
+      <h3 style="margin-bottom:4px">🚨 Cheater Detection</h3>
+      <p style="color:#94a3b8;font-size:12px;margin-bottom:12px">Players flagged for suspicious XP, coins, or activity</p>
+      <button class="btn-secondary" style="width:100%;margin-bottom:12px" onclick="Admin.loadCheaterDetection()">🔄 Scan Players</button>
+      <div id="admin-cheater-list"><p class="text-muted" style="text-align:center;padding:16px">Press Scan to check players.</p></div>
+    </div>
+
+    <!-- CSV IMPORT -->
+    <div id="admin-csv" class="admin-panel" style="display:none">
+      <h3 style="margin-bottom:8px">📥 Bulk CSV Import</h3>
+      <div style="background:#0f172a;border-radius:8px;padding:12px;margin-bottom:12px;font-size:12px;color:#64748b">
+        <p style="color:#e2e8f0;font-weight:700;margin-bottom:6px">CSV Format (with header row):</p>
+        <p style="font-family:monospace;font-size:11px;color:#00f5c4">category,difficulty,question,optA,optB,optC,optD,correct_index,hint</p>
+        <p style="margin-top:6px">• category: gk, science, math, history, etc.</p>
+        <p>• difficulty: easy, medium, hard</p>
+        <p>• correct_index: 0=A, 1=B, 2=C, 3=D</p>
+        <p>• hint: optional</p>
+      </div>
+      <div style="background:#1e293b;border-radius:10px;padding:16px;text-align:center;margin-bottom:12px;border:2px dashed #334155">
+        <div style="font-size:2rem;margin-bottom:8px">📄</div>
+        <label for="csv-file-input" style="cursor:pointer">
+          <span style="background:#6366f1;color:#fff;padding:8px 20px;border-radius:8px;font-weight:700;font-size:13px">
+            Choose CSV File
+          </span>
+        </label>
+        <input id="csv-file-input" type="file" accept=".csv" style="display:none" onchange="Admin.handleCSVImport(this)"/>
+        <p style="color:#475569;font-size:12px;margin-top:8px">Max 500 questions per file</p>
+      </div>
+      <div id="csv-preview"></div>
+      <button id="csv-import-btn" class="btn-primary" style="width:100%;display:none;margin-top:12px"
+        onclick="Admin.confirmCSVImport()">📥 Import Questions</button>
+
+      <a id="csv-download-sample" href="#" onclick="Admin.downloadSampleCSV(event)"
+        style="display:block;text-align:center;color:#6366f1;font-size:13px;margin-top:16px;text-decoration:underline">
+        ⬇️ Download Sample CSV
+      </a>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ██████████  BOOKMARKS  ██████████ -->
+<div id="screen-bookmarks" class="screen">
+  <header class="inner-header">
+    <button class="back-btn" onclick="App.nav('home')">←</button>
+    <h2>🔖 Bookmarks</h2>
+    <button class="icon-btn" onclick="Bookmark.clearAll()" title="Clear All">🗑️</button>
+  </header>
+  <div class="bookmarks-wrap">
+    <p class="text-muted" style="padding:0 16px 12px">Questions you bookmarked during quizzes.</p>
+    <div id="bookmarks-list"></div>
+    <div style="padding:16px">
+      <button class="btn-primary" style="width:100%" id="bookmark-quiz-btn" onclick="Bookmark.startQuiz()">▶️ Quiz on Bookmarks</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ██████████  OVERLAYS  ██████████ -->
+<div class="answer-flash" id="answer-flash"></div>
+<div class="xp-toast"     id="xp-toast"></div>
+<canvas id="confetti-canvas"></canvas>
+
+<div class="countdown-overlay" id="countdown-overlay">
+  <div class="countdown-num" id="countdown-num">3</div>
+</div>
+
+<!-- Exit modal -->
+<div class="modal-overlay" id="exit-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-icon">⚠️</div>
+    <h3>Quit Quiz?</h3><p>Progress will be lost.</p>
+    <div class="modal-actions">
+      <button class="btn-danger"     onclick="App.exitToHome()">Yes, Quit</button>
+      <button class="btn-secondary"  onclick="App.closeModal('exit-modal')">Keep Playing</button>
+    </div>
+  </div>
+</div>
+
+<!-- Name modal -->
+<div class="modal-overlay" id="name-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-icon">✏️</div>
+    <h3>Change Name</h3>
+    <input id="name-input" class="form-input" placeholder="Your name" maxlength="20"/>
+    <div class="modal-actions">
+      <button class="btn-primary"   onclick="Profile.saveName()">Save</button>
+      <button class="btn-secondary" onclick="App.closeModal('name-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Admin lock modal -->
+<div class="modal-overlay" id="admin-lock-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-icon">🔐</div>
+    <h3>Admin Access</h3>
+    <input id="admin-pw" class="form-input" type="password" placeholder="Enter password..."
+           onkeydown="if(event.key==='Enter')AdminLock.verify()"/>
+    <div class="modal-actions">
+      <button class="btn-primary"   onclick="AdminLock.verify()">Unlock</button>
+      <button class="btn-secondary" onclick="App.closeModal('admin-lock-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Daily streak reward modal -->
+<div class="modal-overlay" id="daily-reward-modal" style="display:none">
+  <div class="modal daily-reward-modal-box">
+    <div class="modal-icon daily-reward-burst" id="daily-reward-icon">🌟</div>
+    <h3 class="daily-reward-title">DAILY COMPLETE!</h3>
+    <div class="daily-reward-streak">🔥 <span id="daily-reward-streak-num">1</span> Day Streak!</div>
+    <div class="daily-reward-bonus-row">
+      <div class="daily-reward-bonus">⚡ <span id="daily-reward-xp">+0</span> XP</div>
+      <div class="daily-reward-bonus">🪙 <span id="daily-reward-coins">+0</span> Coins</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" style="width:100%" onclick="App.closeModal('daily-reward-modal')">🚀 Awesome!</button>
+    </div>
+  </div>
+</div>
+
+<!-- Purchase success modal -->
+<div class="modal-overlay" id="purchase-modal" style="display:none">
+  <div class="modal purchase-modal-box">
+    <div class="modal-icon purchase-burst" id="purchase-icon">✅</div>
+    <h3 id="purchase-title">Purchased!</h3>
+    <div class="purchase-detail" id="purchase-detail"></div>
+    <div class="purchase-coins-left">🪙 <span id="purchase-coins-left">0</span> coins remaining</div>
+    <div class="modal-actions">
+      <button class="btn-primary" style="width:100%" onclick="App.closeModal('purchase-modal')">Sweet!</button>
+    </div>
+  </div>
+</div>
+
+<!-- Not enough coins modal -->
+<div class="modal-overlay" id="no-coins-modal" style="display:none">
+  <div class="modal no-coins-modal-box">
+    <div class="modal-icon no-coins-shake" id="no-coins-icon">🪙</div>
+    <h3>Not Enough Coins!</h3>
+    <div class="no-coins-detail" id="no-coins-detail"></div>
+    <div class="modal-actions">
+      <button class="btn-primary"   onclick="App.closeModal('no-coins-modal'); App.nav('home')">Play to Earn</button>
+      <button class="btn-secondary" onclick="App.closeModal('no-coins-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Achievement popup -->
+<div class="achievement-popup" id="achievement-popup" style="display:none">
+  <div class="ach-inner">
+    <div class="ach-icon" id="ach-icon">🏅</div>
+    <div>
+      <div class="ach-title">Achievement Unlocked!</div>
+      <div class="ach-name" id="ach-name">First Quiz</div>
+    </div>
+  </div>
+</div>
+
+<!-- Auth Modal — Login / Signup -->
+<div class="modal-overlay" id="auth-modal" style="display:flex">
+  <div class="modal auth-modal-box">
+    <div class="modal-icon">⚡</div>
+    <h3 class="auth-title">QuizBlast</h3>
+
+    <!-- Tabs -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="auth-tab-login"  onclick="Auth.switchTab('login')">Login</button>
+      <button class="auth-tab"        id="auth-tab-signup" onclick="Auth.switchTab('signup')">Sign Up</button>
+    </div>
+
+    <!-- Login Form -->
+    <div id="auth-login-form">
+      <input id="auth-email"    class="form-input" type="email"    placeholder="Email" autocomplete="email"/>
+      <input id="auth-password" class="form-input" type="password" placeholder="Password" style="margin-top:10px" autocomplete="current-password"/>
+      <div id="auth-error" class="auth-error" style="display:none"></div>
+      <button class="btn-primary" style="width:100%;margin-top:14px" onclick="Auth.login()">🚀 Login</button>
+      <button class="auth-guest-btn" onclick="Auth.continueAsGuest()">Continue as Guest</button>
+    </div>
+
+    <!-- Signup Form -->
+    <div id="auth-signup-form" style="display:none">
+      <input id="auth-signup-username" class="form-input" placeholder="Username (min 3 chars)" maxlength="20" autocomplete="off"/>
+      <input id="auth-signup-email"    class="form-input" type="email"    placeholder="Email" style="margin-top:10px" autocomplete="email"/>
+      <input id="auth-signup-password" class="form-input" type="password" placeholder="Password (min 6 chars)" style="margin-top:10px" autocomplete="new-password"/>
+      <div id="auth-signup-error" class="auth-error" style="display:none"></div>
+      <button class="btn-primary" style="width:100%;margin-top:14px" onclick="Auth.signup()">🎮 Create Account</button>
+      <button class="auth-guest-btn" onclick="Auth.continueAsGuest()">Continue as Guest</button>
+    </div>
+  </div>
+</div>
+
+<!-- Welcome / First-time Name Modal (Guest only) -->
+<div class="modal-overlay" id="welcome-modal" style="display:none">
+  <div class="modal welcome-modal-box">
+    <div class="modal-icon">⚡</div>
+    <h3>Welcome to QuizBlast!</h3>
+    <p>Enter your name to get started</p>
+    <input id="welcome-name-input" class="form-input" placeholder="Your name (min 3 letters)"
+           maxlength="20" autocomplete="off" autocorrect="off" spellcheck="false"/>
+    <div id="welcome-name-error" class="name-error" style="display:none">
+      ⚠️ Name must be at least 3 letters
+    </div>
+    <div class="modal-actions" style="flex-direction:column;gap:10px">
+      <button class="btn-primary" style="width:100%" onclick="WelcomeSetup.save()">
+        🚀 Let's Play!
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/data.js"></script>
+<script src="js/script.js"></script>
+<script>
+  // Register Service Worker
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js")
+        .then(reg => console.log("[SW] Registered:", reg.scope))
+        .catch(err => console.warn("[SW] Failed:", err));
+    });
+  }
+</script>
+</body>
+</html>
